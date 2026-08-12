@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<div
+    id="g_id_onload"
+    data-client_id="803864315194-kquc463lhebnaj5fq0cgt7cjpi72rei6.apps.googleusercontent.com"
+    data-callback="handleCredentialResponse">
+</div>
+
+<div
+    class="g_id_signin"
+    data-type="standard">
+</div>
+
+<script>
+function handleCredentialResponse(response) {
+    console.log(response.credential);
+
+    navigator.clipboard.writeText(response.credential);
+
+    alert("ID Token copied to clipboard");
+}
+</script>
+
+</body>
+</html>

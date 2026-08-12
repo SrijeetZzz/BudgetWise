@@ -1,0 +1,21 @@
+{
+  "name": "budgetwise",
+  "private": true,
+  "version": "1.0.0",
+  "description": "BudgetWise - Personal Finance Management",
+  "packageManager": "npm@11.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "turbo run format"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.7"
+  }
+}

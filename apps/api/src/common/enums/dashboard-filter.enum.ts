@@ -1,0 +1,8 @@
+export enum DashboardFilter {
+  TODAY = "TODAY",
+  THIS_WEEK = "THIS_WEEK",
+  THIS_MONTH = "THIS_MONTH",
+  LAST_3_MONTHS = "LAST_3_MONTHS",
+  LAST_6_MONTHS = "LAST_6_MONTHS",
+  THIS_YEAR = "THIS_YEAR",
+}
