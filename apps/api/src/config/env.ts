@@ -68,6 +68,9 @@ const requiredEnvVars = [
   "MAIL_PASSWORD",
   "MAIL_FROM_NAME",
   "MAIL_FROM_EMAIL",
+
+  //Redis
+  "REDIS_URL",
 ] as const;
 
 for (const key of requiredEnvVars) {
@@ -93,6 +96,10 @@ export const env = {
 
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID!,
+  },
+
+   redis: {
+    url: process.env.REDIS_URL!,
   },
 
   mail: {

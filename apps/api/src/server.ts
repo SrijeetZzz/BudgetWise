@@ -1,4 +1,5 @@
 import app from "./app";
+import { redis } from "./config/redis";
 import { env } from "./config/env";
 import { connectDatabase } from "./database/connection";
 import { startScheduler } from "./modules/scheduler/scheduler";
@@ -6,6 +7,10 @@ import { startScheduler } from "./modules/scheduler/scheduler";
 const startServer = async () => {
   try {
     await connectDatabase();
+
+    await redis.ping();
+
+    console.log("✅ Redis ping successful.");
 
     app.listen(env.port, () => {
       console.log("=================================");
