@@ -1,21 +1,17 @@
-import { Types } from "mongoose";
-import {
-    BudgetPeriod,
-    BudgetScope,
-} from "../types/budget.types";
+import { BudgetPeriod, BudgetScope } from "../types/budget.types";
 
 export interface UpdateBudgetDto {
-    scope?: BudgetScope;
+  scope?: BudgetScope;
 
-    categoryId?: string;
+  categoryId?: string;
 
-    subcategoryId?: string;
+  subcategoryId?: string;
 
-    period?: BudgetPeriod;
+  period?: BudgetPeriod;
 
-    startDate?: Date;
+  startDate?: Date;
 
-    endDate?: Date;
+  endDate?: Date;
 
-    budgetAmount?: number;
+  budgetAmount?: number;
 }

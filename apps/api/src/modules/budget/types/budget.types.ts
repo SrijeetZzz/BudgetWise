@@ -1,18 +1,24 @@
 export enum BudgetScope {
-    OVERALL = "OVERALL",
-    CATEGORY = "CATEGORY",
-    SUBCATEGORY = "SUBCATEGORY",
+  OVERALL = "OVERALL",
+  CATEGORY = "CATEGORY",
+  SUBCATEGORY = "SUBCATEGORY",
 }
 
 export enum BudgetPeriod {
-    WEEKLY = "WEEKLY",
-    MONTHLY = "MONTHLY",
-    YEARLY = "YEARLY",
-    CUSTOM = "CUSTOM",
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY",
+  YEARLY = "YEARLY",
+  CUSTOM = "CUSTOM",
 }
 
 export enum BudgetStatus {
-    ACTIVE = "ACTIVE",
-    COMPLETED = "COMPLETED",
-    EXPIRED = "EXPIRED",
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+  EXPIRED = "EXPIRED",
+}
+
+export enum BudgetRecurrenceStatus {
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+  PAUSED = "PAUSED",
 }

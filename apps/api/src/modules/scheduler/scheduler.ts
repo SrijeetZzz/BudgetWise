@@ -3,12 +3,12 @@ import cron from "node-cron";
 import { schedulerService } from "./services/scheduler.service";
 
 export const startScheduler = () => {
-  // Everyday at 12:00 AM
+  // Every day at 12:00 AM
   cron.schedule("0 0 * * *", async () => {
-    await schedulerService.processRecurringTransactions();
+    await schedulerService.processScheduledTasks();
   });
 
   console.log(
-    "⏰ Recurring transaction scheduler started — every Sunday at 12:00 AM.",
+    "⏰ Scheduler started — recurring transactions and budgets will be processed daily at 12:00 AM.",
   );
 };

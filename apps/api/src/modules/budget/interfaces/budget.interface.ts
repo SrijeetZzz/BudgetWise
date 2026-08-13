@@ -1,42 +1,82 @@
 import { Document, Model, Types } from "mongoose";
+
 import {
-    BudgetPeriod,
-    BudgetScope,
-    BudgetStatus,
+  BudgetPeriod,
+  BudgetRecurrenceStatus,
+  BudgetScope,
+  BudgetStatus,
 } from "../types/budget.types";
 
+export interface IBudgetRecurrence {
+  enabled: boolean;
+
+  /**
+   * Budget amount to use for future generated periods.
+   */
+  budgetAmount: number;
+
+  /**
+   * Date when the scheduler should generate
+   * the next budget period.
+   */
+  nextGenerationDate?: Date | null;
+
+  /**
+   * Optional date after which recurrence should stop.
+   */
+  endDate?: Date;
+
+  /**
+   * Status of the recurring budget series.
+   */
+  status: BudgetRecurrenceStatus;
+
+  /**
+   * ID of the original budget that started
+   * the recurring budget series.
+   */
+  rootBudgetId?: Types.ObjectId;
+}
+
 export interface IBudget {
-    userId: Types.ObjectId;
+  userId: Types.ObjectId;
 
-    scope: BudgetScope;
+  scope: BudgetScope;
 
-    categoryId?: Types.ObjectId;
+  categoryId?: Types.ObjectId;
 
-    subcategoryId?: Types.ObjectId;
+  subcategoryId?: Types.ObjectId;
 
-    period: BudgetPeriod;
+  period: BudgetPeriod;
 
-    startDate: Date;
+  startDate: Date;
 
-    endDate: Date;
+  endDate: Date;
 
-    budgetAmount: number;
+  budgetAmount: number;
 
-    spentAmount: number;
+  spentAmount: number;
 
-    remainingAmount: number;
+  remainingAmount: number;
 
-    utilization: number;
+  utilization: number;
 
-    status: BudgetStatus;
+  status: BudgetStatus;
 
-    isDeleted: boolean;
+  /**
+   * Recurrence configuration.
+   *
+   * Undefined for one-time budgets.
+   */
+  recurrence?: IBudgetRecurrence;
 
-    createdAt: Date;
+  isDeleted: boolean;
 
-    updatedAt: Date;
+  createdAt: Date;
 
-    lastAlertThreshold: number;
+  updatedAt: Date;
+
+  lastAlertThreshold: number;
 }
 
 export interface IBudgetDocument extends IBudget, Document {}

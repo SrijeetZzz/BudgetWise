@@ -8,7 +8,7 @@ class BudgetController {
   createBudget = asyncHandler(async (req: Request, res: Response) => {
     const budget = await budgetService.createBudget(
       new Types.ObjectId(req.user.userId),
-      req.body
+      req.body,
     );
 
     return sendResponse(res, 201, {
@@ -21,7 +21,7 @@ class BudgetController {
   getBudget = asyncHandler(async (req: Request, res: Response) => {
     const budget = await budgetService.getBudgetById(
       new Types.ObjectId(req.user.userId),
-      req.params.budgetId as string
+      req.params.budgetId as string,
     );
 
     return sendResponse(res, 200, {
@@ -34,7 +34,7 @@ class BudgetController {
   getBudgets = asyncHandler(async (req: Request, res: Response) => {
     const budgets = await budgetService.getBudgets(
       new Types.ObjectId(req.user.userId),
-      req.query as any
+      req.query as any,
     );
 
     return sendResponse(res, 200, {
@@ -48,7 +48,7 @@ class BudgetController {
     const budget = await budgetService.updateBudget(
       new Types.ObjectId(req.user.userId),
       req.params.budgetId as string,
-      req.body
+      req.body,
     );
 
     return sendResponse(res, 200, {
@@ -68,6 +68,20 @@ class BudgetController {
       success: true,
       message: result.message,
       data: null,
+    });
+  });
+
+  updateBudgetRecurrence = asyncHandler(async (req: Request, res: Response) => {
+    const budget = await budgetService.updateBudgetRecurrence(
+      new Types.ObjectId(req.user.userId),
+      req.params.budgetId as string,
+      req.body,
+    );
+
+    return sendResponse(res, 200, {
+      success: true,
+      message: "Budget recurrence updated successfully",
+      data: budget,
     });
   });
 }

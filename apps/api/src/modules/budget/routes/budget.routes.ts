@@ -8,6 +8,7 @@ import { validate } from "../../../middleware/validation.middleware";
 import { createBudgetSchema } from "../validators/create-budget.validator";
 import { updateBudgetSchema } from "../validators/update-budget.validator";
 import { getBudgetSchema } from "../validators/get-budget.validator";
+import { updateBudgetRecurrenceSchema } from "../validators/update-budget-recurrence.validator";
 
 const router = Router();
 
@@ -39,6 +40,12 @@ router.patch(
   "/:budgetId",
   validate(updateBudgetSchema),
   budgetController.updateBudget,
+);
+
+router.patch(
+  "/:budgetId/recurrence",
+  validate(updateBudgetRecurrenceSchema),
+  budgetController.updateBudgetRecurrence,
 );
 
 /* -------------------------- Delete -------------------------- */

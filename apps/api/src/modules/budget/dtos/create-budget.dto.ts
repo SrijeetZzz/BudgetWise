@@ -1,21 +1,32 @@
-import { Types } from "mongoose";
-import {
-    BudgetPeriod,
-    BudgetScope,
-} from "../types/budget.types";
+import { BudgetPeriod, BudgetScope } from "../types/budget.types";
 
 export interface CreateBudgetDto {
-    scope: BudgetScope;
+  scope: BudgetScope;
 
-    categoryId?: string;
+  categoryId?: string;
 
-    subcategoryId?: string;
+  subcategoryId?: string;
 
-    period: BudgetPeriod;
+  period: BudgetPeriod;
 
-    startDate: Date;
+  startDate: Date;
 
-    endDate: Date;
+  endDate: Date;
 
-    budgetAmount: number;
+  budgetAmount: number;
+
+  recurrence?: {
+    enabled: boolean;
+
+    /**
+     * Amount to use for future generated budgets.
+     * Defaults to the current budgetAmount if not supplied.
+     */
+    budgetAmount?: number;
+
+    /**
+     * Optional date at which recurrence should stop.
+     */
+    endDate?: Date;
+  };
 }

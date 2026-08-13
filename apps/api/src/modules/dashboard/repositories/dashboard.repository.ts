@@ -78,6 +78,7 @@ class DashboardRepository {
           isDeleted: false,
         },
       },
+
       {
         $group: {
           _id: "$scope",
@@ -106,15 +107,37 @@ class DashboardRepository {
             $sum: "$spentAmount",
           },
 
-          totalRemaining: {
-            $sum: "$remainingAmount",
-          },
-
           overBudgetCount: {
             $sum: {
-              $cond: [{ $gt: ["$spentAmount", "$budgetAmount"] }, 1, 0],
+              $cond: [
+                {
+                  $gt: ["$spentAmount", "$budgetAmount"],
+                },
+                1,
+                0,
+              ],
             },
           },
+        },
+      },
+
+      // Calculate aggregate remaining after grouping
+      {
+        $project: {
+          _id: 1,
+
+          totalBudgets: 1,
+          activeBudgets: 1,
+          expiredBudgets: 1,
+
+          totalBudgetAmount: 1,
+          totalSpent: 1,
+
+          totalRemaining: {
+            $subtract: ["$totalBudgetAmount", "$totalSpent"],
+          },
+
+          overBudgetCount: 1,
         },
       },
     ]);

@@ -1,8 +1,12 @@
 import { FilterQuery, Types, UpdateQuery } from "mongoose";
+
 import { Budget } from "../schemas/budget.schema";
+
 import { IBudget, IBudgetDocument } from "../interfaces/budget.interface";
+
 import { BudgetQueryDto } from "../dtos/budget-query.dto";
-import { BudgetScope , BudgetStatus} from "../types/budget.types";
+
+import { BudgetRecurrenceStatus, BudgetScope } from "../types/budget.types";
 
 class BudgetRepository {
   async create(data: Partial<IBudgetDocument>) {
@@ -62,14 +66,15 @@ class BudgetRepository {
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .populate("categoryId",  "name icon color")
-        .populate("subcategoryId",  "name icon color"),
+        .populate("categoryId", "name icon color")
+        .populate("subcategoryId", "name icon color"),
 
       Budget.countDocuments(filter),
     ]);
 
     return {
       budgets,
+
       pagination: {
         page,
         limit,
@@ -90,6 +95,7 @@ class BudgetRepository {
       update,
       {
         new: true,
+        runValidators: true,
       },
     );
   }
@@ -98,6 +104,7 @@ class BudgetRepository {
     return Budget.findOneAndUpdate(
       {
         _id: id,
+        isDeleted: false,
       },
       {
         isDeleted: true,
@@ -114,6 +121,16 @@ class BudgetRepository {
       isDeleted: false,
     });
   }
+
+  /**
+   * Find budgets affected by an expense transaction.
+   *
+   * A budget is affected when:
+   * - It belongs to the user.
+   * - It is not deleted.
+   * - The transaction falls inside the budget period.
+   * - The transaction matches the budget scope.
+   */
   async findAffectedBudgets(
     userId: Types.ObjectId,
     categoryId: Types.ObjectId,
@@ -122,18 +139,27 @@ class BudgetRepository {
   ) {
     return Budget.find({
       userId,
+
       isDeleted: false,
-        //  status: BudgetStatus.ACTIVE,//
-      startDate: { $lte: transactionDate },
-      endDate: { $gte: transactionDate },
+
+      startDate: {
+        $lte: transactionDate,
+      },
+
+      endDate: {
+        $gte: transactionDate,
+      },
+
       $or: [
         {
           scope: BudgetScope.OVERALL,
         },
+
         {
           scope: BudgetScope.CATEGORY,
           categoryId,
         },
+
         {
           scope: BudgetScope.SUBCATEGORY,
           categoryId,
@@ -141,6 +167,106 @@ class BudgetRepository {
         },
       ],
     });
+  }
+
+  /**
+   * Find recurring budget sources that are
+   * due for generation.
+   *
+   * The scheduler will call this method.
+   */
+  async findDueRecurringBudgets(currentDate: Date = new Date()) {
+    return Budget.find({
+      isDeleted: false,
+
+      "recurrence.enabled": true,
+
+      "recurrence.status": BudgetRecurrenceStatus.ACTIVE,
+
+      "recurrence.nextGenerationDate": {
+        $ne: null,
+        $lte: currentDate,
+      },
+    }).sort({
+      "recurrence.nextGenerationDate": 1,
+    });
+  }
+
+  /**
+   * Check whether a budget already exists for
+   * a particular recurring series and period.
+   *
+   * This prevents duplicate budget creation if
+   * the scheduler runs again after a partial failure.
+   */
+  async findBudgetForPeriod(
+    userId: Types.ObjectId,
+    rootBudgetId: Types.ObjectId,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    return Budget.findOne({
+      userId,
+
+      isDeleted: false,
+
+      startDate,
+
+      endDate,
+
+      $or: [
+        {
+          _id: rootBudgetId,
+        },
+
+        {
+          "recurrence.rootBudgetId": rootBudgetId,
+        },
+      ],
+    });
+  }
+
+  /**
+   * Find the original recurring budget source.
+   *
+   * The source contains the recurrence configuration
+   * used by the scheduler.
+   */
+  async findRecurringSource(rootBudgetId: Types.ObjectId) {
+    return Budget.findOne({
+      _id: rootBudgetId,
+
+      isDeleted: false,
+
+      "recurrence.enabled": true,
+
+      "recurrence.status": BudgetRecurrenceStatus.ACTIVE,
+    });
+  }
+
+  async findRecurringRoot(rootBudgetId: Types.ObjectId) {
+    return Budget.findOne({
+      _id: rootBudgetId,
+      isDeleted: false,
+      "recurrence.enabled": true,
+    });
+  }
+
+  async updateRecurrence(
+    budgetId: Types.ObjectId,
+    update: UpdateQuery<IBudgetDocument>,
+  ) {
+    return Budget.findOneAndUpdate(
+      {
+        _id: budgetId,
+        isDeleted: false,
+      },
+      update,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
   }
 }
 
