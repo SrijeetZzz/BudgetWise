@@ -1,3 +1,366 @@
+// import { TransactionDocument } from "../interfaces/transaction.interface";
+
+// import { transactionRepository } from "../repositories/transaction.repository";
+
+// import { TransactionSource } from "../../../common/enums/transaction-source.enum";
+// import { TransactionType } from "../../../common/enums/transaction-type.enum";
+// import { RecurrenceFrequency } from "../../../common/enums/recurrence-frequency.enum";
+// import { RecurrenceStatus } from "../../../common/enums/recurrence-status.enum";
+
+// import { budgetEngineService } from "../../budget/services/budget-engine.service";
+
+// class TransactionGeneratorService {
+//   /**
+//    * Generate an actual transaction from a recurring transaction template.
+//    */
+//   async generateTransaction(
+//     recurringTransaction: TransactionDocument,
+//   ) {
+//     if (
+//       recurringTransaction.recurrenceStatus !==
+//       RecurrenceStatus.ACTIVE
+//     ) {
+//       return null;
+//     }
+
+//     if (
+//       !recurringTransaction.nextExecutionDate ||
+//       !recurringTransaction.recurrenceFrequency
+//     ) {
+//       return null;
+//     }
+
+//     const executionDate = new Date(
+//       recurringTransaction.nextExecutionDate,
+//     );
+
+//     // Do not generate transactions after the recurrence end date.
+//     if (
+//       recurringTransaction.recurrenceEndDate &&
+//       executionDate >
+//         new Date(recurringTransaction.recurrenceEndDate)
+//     ) {
+//       await transactionRepository.update(
+//         recurringTransaction._id,
+//         {
+//           recurrenceStatus:
+//             RecurrenceStatus.COMPLETED,
+//         },
+//       );
+
+//       return null;
+//     }
+
+//     const generatedTransaction =
+//       await transactionRepository.create({
+//         userId: recurringTransaction.userId,
+
+//         categoryId:
+//           recurringTransaction.categoryId,
+
+//         subcategoryId:
+//           recurringTransaction.subcategoryId,
+
+//         type: recurringTransaction.type,
+
+//         amount: recurringTransaction.amount,
+
+//         currency: recurringTransaction.currency,
+
+//         title: recurringTransaction.title,
+
+//         description:
+//           recurringTransaction.description,
+
+//         paymentMethod:
+//           recurringTransaction.paymentMethod,
+
+//         transactionDate: executionDate,
+
+//         attachments: [],
+
+//         transactionSource:
+//           TransactionSource.RECURRING,
+
+//         parentRecurringId:
+//           recurringTransaction._id,
+
+//         isGenerated: true,
+
+//         isDeleted: false,
+//       });
+
+//     // Recalculate affected budgets for generated expenses.
+//     if (
+//       generatedTransaction.type ===
+//       TransactionType.EXPENSE
+//     ) {
+//       await budgetEngineService.recalculateAffectedBudgets(
+//         generatedTransaction,
+//       );
+//     }
+
+//     const nextExecutionDate =
+//       this.calculateNextExecutionDate(
+//         executionDate,
+//         recurringTransaction.recurrenceFrequency,
+//       );
+
+//     let recurrenceStatus =
+//       RecurrenceStatus.ACTIVE;
+
+//     if (
+//       recurringTransaction.recurrenceEndDate &&
+//       nextExecutionDate >
+//         new Date(recurringTransaction.recurrenceEndDate)
+//     ) {
+//       recurrenceStatus =
+//         RecurrenceStatus.COMPLETED;
+//     }
+
+//     await transactionRepository.update(
+//       recurringTransaction._id,
+//       {
+//         nextExecutionDate,
+//         lastExecutedAt: executionDate,
+//         recurrenceStatus,
+//       },
+//     );
+
+//     return generatedTransaction;
+//   }
+
+//   /**
+//    * Calculate the next execution date.
+//    */
+//   private calculateNextExecutionDate(
+//     currentDate: Date,
+//     frequency: RecurrenceFrequency,
+//   ): Date {
+//     const nextDate = new Date(currentDate);
+
+//     switch (frequency) {
+//       case RecurrenceFrequency.DAILY:
+//         nextDate.setDate(
+//           nextDate.getDate() + 1,
+//         );
+//         break;
+
+//       case RecurrenceFrequency.WEEKLY:
+//         nextDate.setDate(
+//           nextDate.getDate() + 7,
+//         );
+//         break;
+
+//       case RecurrenceFrequency.MONTHLY:
+//         nextDate.setMonth(
+//           nextDate.getMonth() + 1,
+//         );
+//         break;
+
+//       case RecurrenceFrequency.QUARTERLY:
+//         nextDate.setMonth(
+//           nextDate.getMonth() + 3,
+//         );
+//         break;
+
+//       case RecurrenceFrequency.HALF_YEARLY:
+//         nextDate.setMonth(
+//           nextDate.getMonth() + 6,
+//         );
+//         break;
+
+//       case RecurrenceFrequency.YEARLY:
+//         nextDate.setFullYear(
+//           nextDate.getFullYear() + 1,
+//         );
+//         break;
+
+//       default:
+//         throw new Error(
+//           `Unsupported recurrence frequency: ${frequency}`,
+//         );
+//     }
+
+//     return nextDate;
+//   }
+// }
+
+// export const transactionGeneratorService =
+//   new TransactionGeneratorService();
+
+// import mongoose from "mongoose";
+
+// import { TransactionDocument } from "../interfaces/transaction.interface";
+
+// import { transactionRepository } from "../repositories/transaction.repository";
+
+// import { TransactionSource } from "../../../common/enums/transaction-source.enum";
+// import { TransactionType } from "../../../common/enums/transaction-type.enum";
+// import { RecurrenceFrequency } from "../../../common/enums/recurrence-frequency.enum";
+// import { RecurrenceStatus } from "../../../common/enums/recurrence-status.enum";
+
+// import { budgetEngineService } from "../../budget/services/budget-engine.service";
+
+// class TransactionGeneratorService {
+//   async generateTransaction(recurringTransaction: TransactionDocument) {
+//     if (recurringTransaction.recurrenceStatus !== RecurrenceStatus.ACTIVE) {
+//       return null;
+//     }
+
+//     if (
+//       !recurringTransaction.nextExecutionDate ||
+//       !recurringTransaction.recurrenceFrequency
+//     ) {
+//       return null;
+//     }
+
+//     const recurrenceFrequency = recurringTransaction.recurrenceFrequency;
+
+//     const executionDate = new Date(recurringTransaction.nextExecutionDate);
+
+//     if (
+//       recurringTransaction.recurrenceEndDate &&
+//       executionDate > new Date(recurringTransaction.recurrenceEndDate)
+//     ) {
+//       await transactionRepository.update(recurringTransaction._id, {
+//         recurrenceStatus: RecurrenceStatus.COMPLETED,
+//       });
+
+//       return null;
+//     }
+
+//     const session = await mongoose.startSession();
+
+//     let generatedTransaction: TransactionDocument | null = null;
+
+//     try {
+//       await session.withTransaction(async () => {
+//         generatedTransaction = await transactionRepository.create(
+//           {
+//             userId: recurringTransaction.userId,
+
+//             categoryId: recurringTransaction.categoryId,
+
+//             subcategoryId: recurringTransaction.subcategoryId,
+
+//             type: recurringTransaction.type,
+
+//             amount: recurringTransaction.amount,
+
+//             currency: recurringTransaction.currency,
+
+//             title: recurringTransaction.title,
+
+//             description: recurringTransaction.description,
+
+//             paymentMethod: recurringTransaction.paymentMethod,
+
+//             transactionDate: executionDate,
+
+//             attachments: [],
+
+//             transactionSource: TransactionSource.RECURRING,
+
+//             parentRecurringId: recurringTransaction._id,
+
+//             isGenerated: true,
+
+//             isDeleted: false,
+//           },
+//           session,
+//         );
+
+//         if (generatedTransaction.type === TransactionType.EXPENSE) {
+//           await budgetEngineService.recalculateAffectedBudgets(
+//             generatedTransaction,
+//             session,
+//           );
+//         }
+
+//         const nextExecutionDate = this.calculateNextExecutionDate(
+//           executionDate,
+//           recurringTransaction.recurrenceFrequency,
+//         );
+
+//         let recurrenceStatus = RecurrenceStatus.ACTIVE;
+
+//         if (
+//           recurringTransaction.recurrenceEndDate &&
+//           nextExecutionDate > new Date(recurringTransaction.recurrenceEndDate)
+//         ) {
+//           recurrenceStatus = RecurrenceStatus.COMPLETED;
+//         }
+
+//         await transactionRepository.update(
+//           recurringTransaction._id,
+//           {
+//             nextExecutionDate,
+
+//             lastExecutedAt: executionDate,
+
+//             recurrenceStatus,
+//           },
+//           session,
+//         );
+//       });
+//     } catch (error) {
+//       console.error(
+//         `MongoDB transaction failed while generating recurring transaction ${recurringTransaction._id}:`,
+//         error,
+//       );
+
+//       throw error;
+//     } finally {
+//       await session.endSession();
+//     }
+
+//     return generatedTransaction;
+//   }
+
+//   private calculateNextExecutionDate(
+//     currentDate: Date,
+//     frequency: RecurrenceFrequency,
+//   ): Date {
+//     const nextDate = new Date(currentDate);
+
+//     switch (frequency) {
+//       case RecurrenceFrequency.DAILY:
+//         nextDate.setDate(nextDate.getDate() + 1);
+//         break;
+
+//       case RecurrenceFrequency.WEEKLY:
+//         nextDate.setDate(nextDate.getDate() + 7);
+//         break;
+
+//       case RecurrenceFrequency.MONTHLY:
+//         nextDate.setMonth(nextDate.getMonth() + 1);
+//         break;
+
+//       case RecurrenceFrequency.QUARTERLY:
+//         nextDate.setMonth(nextDate.getMonth() + 3);
+//         break;
+
+//       case RecurrenceFrequency.HALF_YEARLY:
+//         nextDate.setMonth(nextDate.getMonth() + 6);
+//         break;
+
+//       case RecurrenceFrequency.YEARLY:
+//         nextDate.setFullYear(nextDate.getFullYear() + 1);
+//         break;
+
+//       default:
+//         throw new Error(`Unsupported recurrence frequency: ${frequency}`);
+//     }
+
+//     return nextDate;
+//   }
+// }
+
+// export const transactionGeneratorService = new TransactionGeneratorService();
+
+import mongoose from "mongoose";
+
 import { TransactionDocument } from "../interfaces/transaction.interface";
 
 import { transactionRepository } from "../repositories/transaction.repository";
@@ -8,11 +371,9 @@ import { RecurrenceFrequency } from "../../../common/enums/recurrence-frequency.
 import { RecurrenceStatus } from "../../../common/enums/recurrence-status.enum";
 
 import { budgetEngineService } from "../../budget/services/budget-engine.service";
+import { invalidateDashboardCache } from "../../dashboard/utils/dashboard-cache";
 
 class TransactionGeneratorService {
-  /**
-   * Generate an actual transaction from a recurring transaction template.
-   */
   async generateTransaction(
     recurringTransaction: TransactionDocument,
   ) {
@@ -30,15 +391,19 @@ class TransactionGeneratorService {
       return null;
     }
 
+    const recurrenceFrequency =
+      recurringTransaction.recurrenceFrequency;
+
     const executionDate = new Date(
       recurringTransaction.nextExecutionDate,
     );
 
-    // Do not generate transactions after the recurrence end date.
     if (
       recurringTransaction.recurrenceEndDate &&
       executionDate >
-        new Date(recurringTransaction.recurrenceEndDate)
+        new Date(
+          recurringTransaction.recurrenceEndDate,
+        )
     ) {
       await transactionRepository.update(
         recurringTransaction._id,
@@ -51,88 +416,125 @@ class TransactionGeneratorService {
       return null;
     }
 
-    const generatedTransaction =
-      await transactionRepository.create({
-        userId: recurringTransaction.userId,
+    const session = await mongoose.startSession();
 
-        categoryId:
-          recurringTransaction.categoryId,
+    let generatedTransaction:
+      | TransactionDocument
+      | null = null;
 
-        subcategoryId:
-          recurringTransaction.subcategoryId,
+    try {
+      await session.withTransaction(async () => {
+        generatedTransaction =
+          await transactionRepository.create(
+            {
+              userId:
+                recurringTransaction.userId,
 
-        type: recurringTransaction.type,
+              categoryId:
+                recurringTransaction.categoryId,
 
-        amount: recurringTransaction.amount,
+              subcategoryId:
+                recurringTransaction.subcategoryId,
 
-        currency: recurringTransaction.currency,
+              type:
+                recurringTransaction.type,
 
-        title: recurringTransaction.title,
+              amount:
+                recurringTransaction.amount,
 
-        description:
-          recurringTransaction.description,
+              currency:
+                recurringTransaction.currency,
 
-        paymentMethod:
-          recurringTransaction.paymentMethod,
+              title:
+                recurringTransaction.title,
 
-        transactionDate: executionDate,
+              description:
+                recurringTransaction.description,
 
-        attachments: [],
+              paymentMethod:
+                recurringTransaction.paymentMethod,
 
-        transactionSource:
-          TransactionSource.RECURRING,
+              transactionDate:
+                executionDate,
 
-        parentRecurringId:
+              attachments: [],
+
+              transactionSource:
+                TransactionSource.RECURRING,
+
+              parentRecurringId:
+                recurringTransaction._id,
+
+              isGenerated: true,
+
+              isDeleted: false,
+            },
+            session,
+          );
+
+        if (
+          generatedTransaction.type ===
+          TransactionType.EXPENSE
+        ) {
+          await budgetEngineService.recalculateAffectedBudgets(
+            generatedTransaction,
+            session,
+          );
+        }
+
+        const nextExecutionDate =
+          this.calculateNextExecutionDate(
+            executionDate,
+            recurrenceFrequency,
+          );
+
+        let recurrenceStatus =
+          RecurrenceStatus.ACTIVE;
+
+        if (
+          recurringTransaction.recurrenceEndDate &&
+          nextExecutionDate >
+            new Date(
+              recurringTransaction.recurrenceEndDate,
+            )
+        ) {
+          recurrenceStatus =
+            RecurrenceStatus.COMPLETED;
+        }
+
+        await transactionRepository.update(
           recurringTransaction._id,
+          {
+            nextExecutionDate,
 
-        isGenerated: true,
+            lastExecutedAt:
+              executionDate,
 
-        isDeleted: false,
+            recurrenceStatus,
+          },
+          session,
+        );
       });
-
-    // Recalculate affected budgets for generated expenses.
-    if (
-      generatedTransaction.type ===
-      TransactionType.EXPENSE
-    ) {
-      await budgetEngineService.recalculateAffectedBudgets(
-        generatedTransaction,
-      );
-    }
-
-    const nextExecutionDate =
-      this.calculateNextExecutionDate(
-        executionDate,
-        recurringTransaction.recurrenceFrequency,
+    } catch (error) {
+      console.error(
+        `MongoDB transaction failed while generating recurring transaction ${recurringTransaction._id}:`,
+        error,
       );
 
-    let recurrenceStatus =
-      RecurrenceStatus.ACTIVE;
-
-    if (
-      recurringTransaction.recurrenceEndDate &&
-      nextExecutionDate >
-        new Date(recurringTransaction.recurrenceEndDate)
-    ) {
-      recurrenceStatus =
-        RecurrenceStatus.COMPLETED;
+      throw error;
+    } finally {
+      await session.endSession();
     }
 
-    await transactionRepository.update(
-      recurringTransaction._id,
-      {
-        nextExecutionDate,
-        lastExecutedAt: executionDate,
-        recurrenceStatus,
-      },
+    // Invalidate dashboard cache only after
+    // MongoDB transaction successfully commits.
+    await invalidateDashboardCache(
+      recurringTransaction.userId,
     );
 
     return generatedTransaction;
   }
 
-  /**
-   * Calculate the next execution date.
-   */
   private calculateNextExecutionDate(
     currentDate: Date,
     frequency: RecurrenceFrequency,
