@@ -15,6 +15,8 @@ import path from "path";
 import budgetRoutes from "./modules/budget/routes/budget.routes";
 import dashboardRoutes from "./modules/dashboard/routes/dashboard.routes";
 import notificationRoutes from "./modules/notification/routes/notification.routes";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger/swagger";
 
 const app = express();
 
@@ -53,6 +55,12 @@ app.get("/health", (_req, res) => {
     message: "BudgetWise API is running 🚀",
   });
 });
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec),
+);
 
 app.use(
   "/uploads",
