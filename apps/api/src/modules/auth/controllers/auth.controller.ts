@@ -33,12 +33,7 @@ export const login = asyncHandler(async (req, res) => {
 
   const result = await authService.login(req.body, browser, ipAddress);
 
-  res.cookie("refreshToken", result.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: JWT.refreshCookieExpiresIn,
-  });
+  res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
   return sendResponse(res, 200, {
     success: true,
@@ -58,12 +53,7 @@ export const googleLogin = asyncHandler(async (req, res) => {
 
   // Existing user -> login successful
   if ("refreshToken" in result) {
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: JWT.refreshCookieExpiresIn,
-    });
+    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
     return sendResponse(res, 200, {
       success: true,
@@ -89,12 +79,7 @@ export const googleComplete = asyncHandler(async (req, res) => {
 
   const result = await authService.googleComplete(req.body, browser, ipAddress);
 
-  res.cookie("refreshToken", result.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: JWT.refreshCookieExpiresIn,
-  });
+  res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
   return sendResponse(res, 201, {
     success: true,
@@ -172,9 +157,7 @@ export const resetPassword = asyncHandler(
 
 export const getCurrentUser = asyncHandler(
   async (req: Request, res: Response) => {
-    const user = await authService.getCurrentUser(
-      req.user.userId,
-    );
+    const user = await authService.getCurrentUser(req.user.userId);
 
     return sendResponse(res, 200, {
       success: true,
