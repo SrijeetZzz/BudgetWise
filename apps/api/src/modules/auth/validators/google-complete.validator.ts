@@ -1,22 +1,3 @@
-// import { z } from "zod";
-
-// export const googleCompleteSchema = z.object({
-//   body: z.object({
-//     idToken: z.string().min(1, "Google ID token is required"),
-
-//     phone: z
-//       .string()
-//       .regex(/^[6-9]\d{9}$/, "Invalid phone number"),
-
-//     otp: z
-//       .string()
-//       .length(6, "OTP must be 6 digits"),
-
-//     deviceId: z
-//       .string()
-//       .min(1, "Device ID is required"),
-//   }),
-// });
 
 import { z } from "zod";
 

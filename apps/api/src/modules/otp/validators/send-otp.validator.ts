@@ -11,7 +11,9 @@ export const sendOtpSchema = z.object({
     "REGISTER",
     "LOGIN",
     "RESET_PASSWORD",
+    "GOOGLE_REGISTER",
   ]),
 });
 
-export type SendOtpSchemaType = z.infer<typeof sendOtpSchema>;
+export type SendOtpSchemaType =
+  z.infer<typeof sendOtpSchema>;

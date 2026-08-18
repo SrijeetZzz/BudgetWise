@@ -432,12 +432,17 @@ class AuthService {
 
     const profile = await profileRepository.findByUserId(userId.toString());
 
+    const settings = await settingsRepository.findByUserId(
+      userId.toString(),
+    );
+
     return {
       id: user._id.toString(),
       email: user.email,
       phone: user.phone,
       name: profile?.displayName ?? null,
       profileImage: profile?.profileImage ?? null,
+      theme: settings?.theme ?? "SYSTEM",
     };
   }
 }
