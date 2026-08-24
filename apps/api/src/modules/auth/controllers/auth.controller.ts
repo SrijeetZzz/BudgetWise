@@ -5,8 +5,6 @@ import authService from "../services/auth.service";
 import { asyncHandler } from "../../../common/helpers/asyncHandler";
 import { sendResponse } from "../../../common/utils/response";
 import { refreshCookieOptions } from "../../../config/cookie/cookie.config";
-import { JWT } from "../../../config/jwt";
-import { GoogleLoginDto } from "../dto/google-login.dto";
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const browser = req.get("User-Agent") ?? null;
