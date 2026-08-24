@@ -117,19 +117,33 @@
 
 // export const mailService =
 //   new MailService();
-
 import { Resend } from "resend";
 
 import { env } from "../../config/env";
+
+import { otpTemplate } from "../templates/otp.template";
 
 const resend = new Resend(
   env.resend.apiKey,
 );
 
+/*
+ * TEMPORARY TESTING ONLY
+ *
+ * Resend test mode only allows emails
+ * to be sent to the account owner's email.
+ *
+ * Replace this with options.to after
+ * verifying a domain in Resend.
+ */
 const TEST_EMAIL =
   "srijeet.wp@gmail.com";
 
 class MailService {
+  /* =====================================================
+     GENERIC EMAIL SENDER
+  ===================================================== */
+
   async sendMail(options: {
     to: string;
     subject: string;
@@ -149,15 +163,19 @@ class MailService {
 
     const { data, error } =
       await resend.emails.send({
-        from: `BudgetWise <${env.resend.fromEmail}>`,
+        from:
+          `BudgetWise <${env.resend.fromEmail}>`,
 
         to: TEST_EMAIL,
 
-        subject: options.subject,
+        subject:
+          options.subject,
 
-        html: options.html,
+        html:
+          options.html,
 
-        text: options.text,
+        text:
+          options.text,
       });
 
     if (error) {
@@ -180,6 +198,10 @@ class MailService {
     return data;
   }
 
+  /* =====================================================
+     OTP EMAIL
+  ===================================================== */
+
   async sendOTP(
     to: string,
     otp: string,
@@ -190,14 +212,18 @@ class MailService {
       subject:
         "Your BudgetWise Verification Code",
 
-      html: `
-        <p>Your BudgetWise OTP is:</p>
-        <h1>${otp}</h1>
-        <p>This OTP will expire soon.</p>
-        <p>Requested for: ${to}</p>
-      `,
+      /*
+       * Use the existing HTML email template.
+       */
+      html:
+        otpTemplate(otp),
 
-      text: `Your BudgetWise OTP is ${otp}. Requested for: ${to}`,
+      /*
+       * Plain-text fallback.
+       */
+      text:
+        `Your BudgetWise OTP is ${otp}. ` +
+        `It is valid for 5 minutes.`,
     });
   }
 }
