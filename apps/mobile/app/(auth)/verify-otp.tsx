@@ -233,7 +233,7 @@ export default function VerifyOtpScreen() {
               text: "Continue",
               onPress: () => {
                 router.replace(
-                  "/(auth)/login",
+                  "/(app)",
                 );
               },
             },
