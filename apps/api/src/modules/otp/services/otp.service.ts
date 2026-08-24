@@ -87,9 +87,9 @@ class OtpService {
 
       const result = await mailService.sendOTP(email, otp);
 
-      console.log("OTP → EMAIL SENT SUCCESSFULLY", {
-        messageId: result.messageId,
-        response: result.response,
+      console.log("OTP EMAIL → SENT", {
+        email,
+        emailId: result?.id,
       });
     } catch (error) {
       console.error("OTP → EMAIL FAILED");

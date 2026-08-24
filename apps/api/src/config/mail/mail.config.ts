@@ -20,144 +20,25 @@
 //   }
 // });
 
-
-import dns from "node:dns";
-
-import nodemailer from "nodemailer";
-import SMTPTransport from "nodemailer/lib/smtp-transport";
+import { Resend } from "resend";
 
 import { env } from "../env";
 
 /* =====================================================
-   DNS CONFIG
-===================================================== */
-
-/*
- * Prefer IPv4 before IPv6.
- *
- * This helps avoid the previous:
- *
- * ENETUNREACH ... IPv6-address:587
- */
-dns.setDefaultResultOrder(
-  "ipv4first",
-);
-
-/* =====================================================
-   MAIL CONFIG LOG
+   RESEND CONFIG
 ===================================================== */
 
 console.log(
-  "MAIL CONFIG → INITIALIZING",
+  "RESEND → INITIALIZING",
   {
-    host: env.mail.host,
-
-    port: env.mail.port,
-
-    secure: env.mail.secure,
-
-    user: env.mail.user,
-
-    from: env.mail.from.email,
+    fromEmail: env.resend.fromEmail,
   },
 );
 
 /* =====================================================
-   SMTP OPTIONS
+   RESEND CLIENT
 ===================================================== */
 
-const smtpOptions: SMTPTransport.Options = {
-  host: env.mail.host,
-
-  port: Number(
-    env.mail.port,
-  ),
-
-  /*
-   * Port 587 uses STARTTLS.
-   *
-   * Therefore secure must be false.
-   */
-  secure: false,
-
-  requireTLS: true,
-
-  auth: {
-    user: env.mail.user,
-
-    pass: env.mail.password,
-  },
-
-  connectionTimeout: 30000,
-
-  greetingTimeout: 30000,
-
-  socketTimeout: 30000,
-};
-
-/* =====================================================
-   NODEMAILER TRANSPORTER
-===================================================== */
-
-export const mailTransporter =
-  nodemailer.createTransport(
-    smtpOptions,
-  );
-
-/* =====================================================
-   VERIFY SMTP CONNECTION
-===================================================== */
-
-mailTransporter
-  .verify()
-  .then(() => {
-    console.log(
-      "=================================",
-    );
-
-    console.log(
-      "✅ MAIL → SMTP SERVER READY",
-    );
-
-    console.log(
-      "=================================",
-    );
-  })
-  .catch((error) => {
-    console.error(
-      "=================================",
-    );
-
-    console.error(
-      "❌ MAIL → SMTP VERIFICATION FAILED",
-    );
-
-    console.error(
-      "MESSAGE:",
-      error?.message,
-    );
-
-    console.error(
-      "CODE:",
-      error?.code,
-    );
-
-    console.error(
-      "COMMAND:",
-      error?.command,
-    );
-
-    console.error(
-      "RESPONSE:",
-      error?.response,
-    );
-
-    console.error(
-      "FULL ERROR:",
-      error,
-    );
-
-    console.error(
-      "=================================",
-    );
-  });
+export const resend = new Resend(
+  env.resend.apiKey,
+);
