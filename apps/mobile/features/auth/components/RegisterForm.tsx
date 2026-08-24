@@ -1620,6 +1620,7 @@ export default function RegisterForm({
       const normalizedEmail = email.trim().toLowerCase();
 
       const deviceId = await getDeviceId();
+      
 
       await sendOtp.mutateAsync({
         email: email.trim().toLowerCase(),
