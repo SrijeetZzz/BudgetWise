@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 interface RegistrationData {
+  deviceId: string;
   displayName: string;
   email: string;
   phone: string;

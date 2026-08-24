@@ -582,17 +582,14 @@ export default function RegisterScreen() {
      */
 
     setRegistration({
-      displayName:
-        data.displayName,
+      displayName: data.displayName,
 
-      email:
-        data.email,
+      email: data.email,
 
-      phone:
-        data.phone,
+      phone: data.phone,
 
-      password:
-        data.password,
+      password: data.password,
+      deviceId: "",
     });
 
     /*
@@ -600,7 +597,7 @@ export default function RegisterScreen() {
      */
 
     router.push(
-      "/(auth)/register-otp",
+      "/(auth)/verify-otp",
     );
   };
 
