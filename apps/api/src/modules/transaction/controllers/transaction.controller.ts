@@ -109,6 +109,7 @@ class TransactionController {
       data: transaction,
     });
   });
+  
   deleteAttachment = asyncHandler(async (req: Request, res: Response) => {
   const transaction = await transactionService.deleteAttachment(
     new Types.ObjectId(req.user.userId),

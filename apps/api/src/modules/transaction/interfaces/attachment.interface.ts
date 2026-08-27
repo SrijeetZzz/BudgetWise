@@ -7,4 +7,5 @@ export interface IAttachment {
   fileType: string;
   fileSize: number;
   uploadedAt: Date;
+  cloudinaryPublicId: string;
 }

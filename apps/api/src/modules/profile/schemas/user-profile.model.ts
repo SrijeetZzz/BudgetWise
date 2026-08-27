@@ -1,9 +1,4 @@
-import {
-  Schema,
-  model,
-  InferSchemaType,
-  HydratedDocument,
-} from "mongoose";
+import { Schema, model, InferSchemaType, HydratedDocument } from "mongoose";
 
 const userProfileSchema = new Schema(
   {
@@ -26,6 +21,11 @@ const userProfileSchema = new Schema(
       type: String,
       default: null,
       maxlength: 500,
+    },
+
+    profileImagePublicId: {
+      type: String,
+      default: null,
     },
 
     monthlyIncome: {

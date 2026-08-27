@@ -1,6 +1,3 @@
-
-
-
 import mongoose, { Types } from "mongoose";
 import fs from "fs";
 import path from "path";
@@ -25,6 +22,7 @@ import { budgetEngineService } from "../../budget/services/budget-engine.service
 import { TransactionType } from "../../../common/enums/transaction-type.enum";
 
 import { invalidateDashboardCache } from "../../dashboard/utils/dashboard-cache";
+import cloudinary from "../../../config/cloudinary";
 
 export class TransactionService {
   async createTransaction(
@@ -36,19 +34,14 @@ export class TransactionService {
     // Validate category
     // -----------------------------------------
 
-    const category = await categoryRepository.findById(
-      dto.categoryId,
-    );
+    const category = await categoryRepository.findById(dto.categoryId);
 
     if (!category) {
       throw new AppError(404, "Category not found");
     }
 
     if (String(category.type) !== String(dto.type)) {
-      throw new AppError(
-        400,
-        "Transaction type must match category type.",
-      );
+      throw new AppError(400, "Transaction type must match category type.");
     }
 
     // -----------------------------------------
@@ -56,21 +49,14 @@ export class TransactionService {
     // -----------------------------------------
 
     if (dto.subcategoryId) {
-      const subcategory =
-        await categoryRepository.findById(
-          dto.subcategoryId,
-        );
+      const subcategory = await categoryRepository.findById(dto.subcategoryId);
 
       if (!subcategory) {
-        throw new AppError(
-          404,
-          "Subcategory not found",
-        );
+        throw new AppError(404, "Subcategory not found");
       }
 
       if (
-        subcategory.parentCategoryId?.toString() !==
-        category._id.toString()
+        subcategory.parentCategoryId?.toString() !== category._id.toString()
       ) {
         throw new AppError(
           400,
@@ -78,10 +64,7 @@ export class TransactionService {
         );
       }
 
-      if (
-        String(subcategory.type) !==
-        String(dto.type)
-      ) {
+      if (String(subcategory.type) !== String(dto.type)) {
         throw new AppError(
           400,
           "Transaction type must match subcategory type.",
@@ -89,12 +72,7 @@ export class TransactionService {
       }
     }
 
-    const {
-      isRecurring,
-      categoryId,
-      subcategoryId,
-      ...transactionData
-    } = dto;
+    const { isRecurring, categoryId, subcategoryId, ...transactionData } = dto;
 
     // -----------------------------------------
     // Build attachments
@@ -103,13 +81,34 @@ export class TransactionService {
     const attachments: IAttachment[] = [];
 
     if (file) {
-      attachments.push({
-        fileName: file.filename,
-        fileUrl: `/uploads/receipts/${file.filename}`,
-        fileType: file.mimetype,
-        fileSize: file.size,
-        uploadedAt: new Date(),
-      });
+      try {
+        const resourceType =
+          file.mimetype === "application/pdf" ? "raw" : "image";
+
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: "budgetwise/receipts",
+          resource_type: resourceType,
+        });
+
+        attachments.push({
+          fileName: file.filename,
+          fileUrl: result.secure_url,
+          fileType: file.mimetype,
+          fileSize: file.size,
+          uploadedAt: new Date(),
+          cloudinaryPublicId: result.public_id,
+        });
+      } finally {
+        /*
+         * Always delete temporary
+         * local Multer file.
+         */
+        try {
+          await fs.promises.unlink(file.path);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
     }
 
     // -----------------------------------------
@@ -121,8 +120,7 @@ export class TransactionService {
 
       userId,
 
-      categoryId:
-        new Types.ObjectId(categoryId),
+      categoryId: new Types.ObjectId(categoryId),
 
       subcategoryId: subcategoryId
         ? new Types.ObjectId(subcategoryId)
@@ -138,32 +136,23 @@ export class TransactionService {
     // -----------------------------------------
 
     if (isRecurring) {
-      transactionPayload.transactionSource =
-        TransactionSource.RECURRING;
+      transactionPayload.transactionSource = TransactionSource.RECURRING;
 
-      transactionPayload.recurrenceStatus =
-        RecurrenceStatus.ACTIVE;
+      transactionPayload.recurrenceStatus = RecurrenceStatus.ACTIVE;
 
-      transactionPayload.nextExecutionDate =
-        dto.recurrenceStartDate;
+      transactionPayload.nextExecutionDate = dto.recurrenceStartDate;
     } else {
-      transactionPayload.transactionSource =
-        TransactionSource.MANUAL;
+      transactionPayload.transactionSource = TransactionSource.MANUAL;
 
-      transactionPayload.recurrenceFrequency =
-        undefined;
+      transactionPayload.recurrenceFrequency = undefined;
 
-      transactionPayload.recurrenceStartDate =
-        undefined;
+      transactionPayload.recurrenceStartDate = undefined;
 
-      transactionPayload.recurrenceEndDate =
-        undefined;
+      transactionPayload.recurrenceEndDate = undefined;
 
-      transactionPayload.recurrenceStatus =
-        undefined;
+      transactionPayload.recurrenceStatus = undefined;
 
-      transactionPayload.nextExecutionDate =
-        undefined;
+      transactionPayload.nextExecutionDate = undefined;
     }
 
     // -----------------------------------------
@@ -177,17 +166,13 @@ export class TransactionService {
     try {
       await session.withTransaction(async () => {
         // Create transaction inside MongoDB transaction
-        transaction =
-          await transactionRepository.create(
-            transactionPayload,
-            session,
-          );
+        transaction = await transactionRepository.create(
+          transactionPayload,
+          session,
+        );
 
         // Recalculate affected budgets
-        if (
-          transaction.type ===
-          TransactionType.EXPENSE
-        ) {
+        if (transaction.type === TransactionType.EXPENSE) {
           await budgetEngineService.recalculateAffectedBudgets(
             transaction,
             session,
@@ -217,64 +202,42 @@ export class TransactionService {
     return transaction;
   }
 
-  async getTransaction(
-    userId: Types.ObjectId,
-    transactionId: Types.ObjectId,
-  ) {
-    const transaction =
-      await transactionRepository.findByIdAndUserId(
-        transactionId,
-        userId,
-      );
+  async getTransaction(userId: Types.ObjectId, transactionId: Types.ObjectId) {
+    const transaction = await transactionRepository.findByIdAndUserId(
+      transactionId,
+      userId,
+    );
 
     if (!transaction) {
-      throw new AppError(
-        404,
-        "Transaction not found",
-      );
+      throw new AppError(404, "Transaction not found");
     }
 
     return transaction;
   }
 
-  async getTransactions(
-    userId: Types.ObjectId,
-    query: TransactionQueryDto,
-  ) {
-    return await transactionRepository.findAllByUserId(
-      userId,
-      query,
-    );
+  async getTransactions(userId: Types.ObjectId, query: TransactionQueryDto) {
+    return await transactionRepository.findAllByUserId(userId, query);
   }
 
   async updateTransaction(
     userId: Types.ObjectId,
     transactionId: Types.ObjectId,
-    dto:
-      | UpdateTransactionDto
-      | UpdateRecurringTransactionDto,
+    dto: UpdateTransactionDto | UpdateRecurringTransactionDto,
   ) {
     // -----------------------------------------
     // Load existing transaction
     // -----------------------------------------
 
-    const existingTransaction =
-      await transactionRepository.findByIdAndUserId(
-        transactionId,
-        userId,
-      );
+    const existingTransaction = await transactionRepository.findByIdAndUserId(
+      transactionId,
+      userId,
+    );
 
     if (!existingTransaction) {
-      throw new AppError(
-        404,
-        "Transaction not found",
-      );
+      throw new AppError(404, "Transaction not found");
     }
 
-    const updateData: Record<
-      string,
-      unknown
-    > = {
+    const updateData: Record<string, unknown> = {
       ...dto,
     };
 
@@ -283,65 +246,42 @@ export class TransactionService {
     // -----------------------------------------
 
     const finalCategoryId =
-      dto.categoryId ??
-      existingTransaction.categoryId.toString();
+      dto.categoryId ?? existingTransaction.categoryId.toString();
 
     const finalSubcategoryId =
-      dto.subcategoryId ??
-      existingTransaction.subcategoryId?.toString();
+      dto.subcategoryId ?? existingTransaction.subcategoryId?.toString();
 
-    const finalType =
-      dto.type ?? existingTransaction.type;
+    const finalType = dto.type ?? existingTransaction.type;
 
     // -----------------------------------------
     // Validate category
     // -----------------------------------------
 
-    const category =
-      await categoryRepository.findById(
-        finalCategoryId,
-      );
+    const category = await categoryRepository.findById(finalCategoryId);
 
     if (!category) {
-      throw new AppError(
-        404,
-        "Category not found",
-      );
+      throw new AppError(404, "Category not found");
     }
 
-    if (
-      String(category.type) !==
-      String(finalType)
-    ) {
-      throw new AppError(
-        400,
-        "Transaction type must match category type.",
-      );
+    if (String(category.type) !== String(finalType)) {
+      throw new AppError(400, "Transaction type must match category type.");
     }
 
-    updateData.categoryId =
-      new Types.ObjectId(finalCategoryId);
+    updateData.categoryId = new Types.ObjectId(finalCategoryId);
 
     // -----------------------------------------
     // Validate subcategory
     // -----------------------------------------
 
     if (finalSubcategoryId) {
-      const subcategory =
-        await categoryRepository.findById(
-          finalSubcategoryId,
-        );
+      const subcategory = await categoryRepository.findById(finalSubcategoryId);
 
       if (!subcategory) {
-        throw new AppError(
-          404,
-          "Subcategory not found",
-        );
+        throw new AppError(404, "Subcategory not found");
       }
 
       if (
-        subcategory.parentCategoryId?.toString() !==
-        category._id.toString()
+        subcategory.parentCategoryId?.toString() !== category._id.toString()
       ) {
         throw new AppError(
           400,
@@ -349,20 +289,14 @@ export class TransactionService {
         );
       }
 
-      if (
-        String(subcategory.type) !==
-        String(finalType)
-      ) {
+      if (String(subcategory.type) !== String(finalType)) {
         throw new AppError(
           400,
           "Transaction type must match subcategory type.",
         );
       }
 
-      updateData.subcategoryId =
-        new Types.ObjectId(
-          finalSubcategoryId,
-        );
+      updateData.subcategoryId = new Types.ObjectId(finalSubcategoryId);
     }
 
     // -----------------------------------------
@@ -376,26 +310,19 @@ export class TransactionService {
     try {
       await session.withTransaction(async () => {
         // Update transaction
-        updatedTransaction =
-          await transactionRepository.update(
-            transactionId,
-            updateData,
-            session,
-          );
+        updatedTransaction = await transactionRepository.update(
+          transactionId,
+          updateData,
+          session,
+        );
 
         if (!updatedTransaction) {
-          throw new AppError(
-            404,
-            "Transaction not found",
-          );
+          throw new AppError(404, "Transaction not found");
         }
 
         // Recalculate budgets affected by
         // the OLD transaction
-        if (
-          existingTransaction.type ===
-          TransactionType.EXPENSE
-        ) {
+        if (existingTransaction.type === TransactionType.EXPENSE) {
           await budgetEngineService.recalculateAffectedBudgets(
             existingTransaction,
             session,
@@ -404,10 +331,7 @@ export class TransactionService {
 
         // Recalculate budgets affected by
         // the UPDATED transaction
-        if (
-          updatedTransaction.type ===
-          TransactionType.EXPENSE
-        ) {
+        if (updatedTransaction.type === TransactionType.EXPENSE) {
           await budgetEngineService.recalculateAffectedBudgets(
             updatedTransaction,
             session,
@@ -439,34 +363,23 @@ export class TransactionService {
     transactionId: Types.ObjectId,
     dto: UpdateRecurringTransactionDto,
   ) {
-    const transaction =
-      await transactionRepository.findByIdAndUserId(
-        transactionId,
-        userId,
-      );
+    const transaction = await transactionRepository.findByIdAndUserId(
+      transactionId,
+      userId,
+    );
 
     if (!transaction) {
-      throw new AppError(
-        404,
-        "Transaction not found",
-      );
+      throw new AppError(404, "Transaction not found");
     }
 
-    if (
-      transaction.transactionSource !==
-      TransactionSource.RECURRING
-    ) {
+    if (transaction.transactionSource !== TransactionSource.RECURRING) {
       throw new AppError(
         400,
         "Only recurring transactions can be updated through this endpoint.",
       );
     }
 
-    return this.updateTransaction(
-      userId,
-      transactionId,
-      dto,
-    );
+    return this.updateTransaction(userId, transactionId, dto);
   }
 
   async deleteTransaction(
@@ -477,17 +390,13 @@ export class TransactionService {
     // Load existing transaction
     // -----------------------------------------
 
-    const transaction =
-      await transactionRepository.findByIdAndUserId(
-        transactionId,
-        userId,
-      );
+    const transaction = await transactionRepository.findByIdAndUserId(
+      transactionId,
+      userId,
+    );
 
     if (!transaction) {
-      throw new AppError(
-        404,
-        "Transaction not found",
-      );
+      throw new AppError(404, "Transaction not found");
     }
 
     // -----------------------------------------
@@ -500,25 +409,18 @@ export class TransactionService {
 
     try {
       await session.withTransaction(async () => {
-        deletedTransaction =
-          await transactionRepository.softDelete(
-            transactionId,
-            session,
-          );
+        deletedTransaction = await transactionRepository.softDelete(
+          transactionId,
+          session,
+        );
 
         if (!deletedTransaction) {
-          throw new AppError(
-            404,
-            "Transaction not found",
-          );
+          throw new AppError(404, "Transaction not found");
         }
 
         // Recalculate affected budgets
         // while still inside transaction
-        if (
-          transaction.type ===
-          TransactionType.EXPENSE
-        ) {
+        if (transaction.type === TransactionType.EXPENSE) {
           await budgetEngineService.recalculateAffectedBudgets(
             transaction,
             session,
@@ -545,78 +447,171 @@ export class TransactionService {
     return deletedTransaction;
   }
 
+  // async uploadAttachment(
+  //   userId: Types.ObjectId,
+  //   transactionId: Types.ObjectId,
+  //   file: Express.Multer.File,
+  // ) {
+  //   const transaction = await transactionRepository.findByIdAndUserId(
+  //     transactionId,
+  //     userId,
+  //   );
+
+  //   if (!transaction) {
+  //     throw new AppError(404, "Transaction not found.");
+  //   }
+
+  //   const attachment: IAttachment = {
+  //     fileName: file.filename,
+  //     fileUrl: `/uploads/receipts/${file.filename}`,
+  //     fileType: file.mimetype,
+  //     fileSize: file.size,
+  //     uploadedAt: new Date(),
+  //   };
+
+  //   return await transactionRepository.addAttachment(transactionId, attachment);
+  // }
+
   async uploadAttachment(
     userId: Types.ObjectId,
     transactionId: Types.ObjectId,
     file: Express.Multer.File,
   ) {
-    const transaction =
-      await transactionRepository.findByIdAndUserId(
-        transactionId,
-        userId,
-      );
+    const transaction = await transactionRepository.findByIdAndUserId(
+      transactionId,
+      userId,
+    );
 
     if (!transaction) {
-      throw new AppError(
-        404,
-        "Transaction not found.",
-      );
+      try {
+        await fs.promises.unlink(file.path);
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      throw new AppError(404, "Transaction not found.");
     }
 
-    const attachment: IAttachment = {
-      fileName: file.filename,
-      fileUrl: `/uploads/receipts/${file.filename}`,
-      fileType: file.mimetype,
-      fileSize: file.size,
-      uploadedAt: new Date(),
-    };
+    try {
+      /*
+       * Determine Cloudinary resource type.
+       */
+      const resourceType =
+        file.mimetype === "application/pdf" ? "raw" : "image";
 
-    return await transactionRepository.addAttachment(
-      transactionId,
-      attachment,
-    );
+      /*
+       * Upload file to Cloudinary.
+       */
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: "budgetwise/receipts",
+        resource_type: resourceType,
+      });
+
+      /*
+       * Build attachment object.
+       */
+      const attachment: IAttachment = {
+        fileName: file.filename,
+        fileUrl: result.secure_url,
+        fileType: file.mimetype,
+        fileSize: file.size,
+        uploadedAt: new Date(),
+        cloudinaryPublicId: result.public_id,
+      };
+
+      /*
+       * Save attachment in MongoDB.
+       */
+      return await transactionRepository.addAttachment(
+        transactionId,
+        attachment,
+      );
+    } finally {
+      /*
+       * Always delete temporary
+       * local Multer file.
+       */
+      try {
+        await fs.promises.unlink(file.path);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   }
+
+  // async deleteAttachment(
+  //   userId: Types.ObjectId,
+  //   transactionId: Types.ObjectId,
+  // ) {
+  //   const transaction = await transactionRepository.findByIdAndUserId(
+  //     transactionId,
+  //     userId,
+  //   );
+
+  //   if (!transaction) {
+  //     throw new AppError(404, "Transaction not found.");
+  //   }
+
+  //   if (!transaction.attachments || transaction.attachments.length === 0) {
+  //     throw new AppError(404, "No attachment found.");
+  //   }
+
+  //   const attachment = transaction.attachments[0];
+
+  //   const filePath = path.join(
+  //     process.cwd(),
+  //     attachment.fileUrl.replace(/^\/+/, ""),
+  //   );
+
+  //   if (fs.existsSync(filePath)) {
+  //     fs.unlinkSync(filePath);
+  //   }
+
+  //   transaction.attachments = [];
+
+  //   await transaction.save();
+
+  //   return transaction;
+  // }
 
   async deleteAttachment(
     userId: Types.ObjectId,
     transactionId: Types.ObjectId,
   ) {
-    const transaction =
-      await transactionRepository.findByIdAndUserId(
-        transactionId,
-        userId,
-      );
-
-    if (!transaction) {
-      throw new AppError(
-        404,
-        "Transaction not found.",
-      );
-    }
-
-    if (
-      !transaction.attachments ||
-      transaction.attachments.length === 0
-    ) {
-      throw new AppError(
-        404,
-        "No attachment found.",
-      );
-    }
-
-    const attachment =
-      transaction.attachments[0];
-
-    const filePath = path.join(
-      process.cwd(),
-      attachment.fileUrl.replace(
-        /^\/+/,
-        "",
-      ),
+    const transaction = await transactionRepository.findByIdAndUserId(
+      transactionId,
+      userId,
     );
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    if (!transaction) {
+      throw new AppError(404, "Transaction not found.");
+    }
+
+    if (!transaction.attachments || transaction.attachments.length === 0) {
+      throw new AppError(404, "No attachment found.");
+    }
+
+    const attachment = transaction.attachments[0];
+
+    const resourceType =
+      attachment.fileType === "application/pdf" ? "raw" : "image";
+
+    console.log("Deleting from Cloudinary:", attachment.cloudinaryPublicId);
+
+    const result = await cloudinary.uploader.destroy(
+      attachment.cloudinaryPublicId,
+      {
+        resource_type: resourceType,
+      },
+    );
+
+    // console.log("Cloudinary delete result:", result);
+
+    if (result.result !== "ok") {
+      throw new AppError(
+        500,
+        `Failed to delete attachment from Cloudinary: ${result.result}`,
+      );
     }
 
     transaction.attachments = [];
@@ -627,5 +622,4 @@ export class TransactionService {
   }
 }
 
-export const transactionService =
-  new TransactionService();
+export const transactionService = new TransactionService();
